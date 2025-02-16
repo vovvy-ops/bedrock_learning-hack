@@ -1,4 +1,4 @@
-# Before we start I want to make one thing clear.This is for EDUCATIONAL PURPOSES only and I am NOT responsible for any damages caused.
+# Before we start I want to make one thing clear.This is for EDUCATIONAL PURPOSES only and I am NOT responsible for any damages caused. Please read ALL the script to avoid errors.
 
 
 # Bedrock Learning Gemini Solver
@@ -25,7 +25,7 @@ A Tampermonkey script that captures a screenshot of Bedrock Learning questions, 
 
 2. **Google Gemini API Key**:
    - Obtain an API key from [Google AI Studio](https://makersuite.google.com/).
-   - The script will prompt you to enter your API key the first time you use it.
+   - The script will prompt you to enter your API key the first time you use it,you do NOT need to modify any of the code.
 
 ---
 
@@ -46,6 +46,7 @@ A Tampermonkey script that captures a screenshot of Bedrock Learning questions, 
 
 5. **Enable the Script**:
    - Ensure the script is enabled in the Tampermonkey dashboard.
+   - # Also make sure to go to the puzzle (extension) icon near the top,press manage extensions and then enable developer mode,or else it will NOT work.
 
 ---
 
@@ -91,21 +92,12 @@ The script includes a dynamic background that transitions between blue, green, a
 
 ---
 
-## Contributing
-
-Contributions are welcome! If you have any suggestions, bug reports, or feature requests, please open an issue or submit a pull request.
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/YourFeatureName`).
-3. Commit your changes (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/YourFeatureName`).
-5. Open a pull request.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ---
 
