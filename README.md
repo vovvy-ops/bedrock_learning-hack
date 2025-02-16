@@ -1,3 +1,6 @@
+# Before we start I want to make one thing clear.This is for EDUCATIONAL PURPOSES only and I am NOT responsible for any damages caused.
+
+
 # Bedrock Learning Gemini Solver
 
 A Tampermonkey script that captures a screenshot of Bedrock Learning questions, sends it to Google's Gemini API, and displays the answer in a beautifully styled new tab.
