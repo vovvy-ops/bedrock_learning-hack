@@ -1,15 +1,17 @@
 // ==UserScript==
-// @name         Bedrock Learning Solver
+// @name         Bedrock Learning Autosolver
 // @namespace    http://tampermonkey.net/
 // @version      1.3
 // @description  Takes a screenshot of Bedrock Learning, sends it to Gemini, and displays the answer in a beautifully styled new tab.
-// @author       You
+// @author       Your Name
 // @match        https://app.bedrocklearning.org/*
 // @grant        GM_openInTab
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
 // @grant        GM_setValue
-// @require      https://html2canvas.hertzen.com/dist/html2canvas.min.js
+// @license      MIT
+// @downloadURL https://update.greasyfork.org/scripts/527131/Bedrock%20Learning%20Autosolver.user.js
+// @updateURL https://update.greasyfork.org/scripts/527131/Bedrock%20Learning%20Autosolver.meta.js
 // ==/UserScript==
 
 (function () {
@@ -18,7 +20,7 @@
     const GEMINI_API_KEY_KEY = 'Your-Google-API-Key-Here';
     let geminiApiKey = GM_getValue(GEMINI_API_KEY_KEY, null);
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=';
-    const DEFAULT_PROMPT = "Analyze the image and identify any questions. Answer the questions clearly and concisely";
+    const DEFAULT_PROMPT = "Analyze the image and identify any questions. Answer the questions with as much detail as possible. Show your reasoning.";
     const ADDITIONAL_PROMPT_MESSAGE = "Enter any additional instructions or questions to send with the image (or leave blank for default prompt):";
 
     async function checkApiKey() {
@@ -35,7 +37,15 @@
         return true;
     }
 
-    function captureScreenshot() {
+    async function captureScreenshot() {
+        if (typeof html2canvas === "undefined") {
+            await new Promise(resolve => {
+                const script = document.createElement("script");
+                script.src = "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
+                script.onload = resolve;
+                document.head.appendChild(script);
+            });
+        }
         return html2canvas(document.body, {
             useCORS: true,
             allowTaint: true,
@@ -92,12 +102,7 @@
                         if (response.status >= 200 && response.status < 300) {
                             try {
                                 const jsonResponse = JSON.parse(response.responseText);
-                                let answer = jsonResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "No answer found.";
-
-                                // Apply bold and italic formatting
-                                answer = answer.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Bold
-                                answer = answer.replace(/"(.*?)"/g, '<i>$1</i>'); // Italics
-
+                                const answer = jsonResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "No answer found.";
                                 displayAnswerInNewTab(answer);
                             } catch (error) {
                                 reject("Error parsing response: " + error.message);
@@ -125,17 +130,17 @@
                 <title>Gemini Answer</title>
                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
                 <style>
-                    @keyframes gradientChange {
-                        0% { background: #1E1E2F; }
-                        25% { background: #3E4E5E; }
-                        50% { background: #2E2E3E; }
-                        75% { background: #0E1E2F; }
-                        100% { background: #1E1E2F; }
+                    @keyframes bgAnimation {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
                     }
 
                     body {
                         font-family: 'Poppins', sans-serif;
-                        animation: gradientChange 10s infinite alternate ease-in-out;
+                        background: linear-gradient(135deg, #1E1E2F, #2D2D3F);
+                        background-size: 300% 300%;
+                        animation: bgAnimation 10s infinite alternate;
                         color: #FFF;
                         text-align: center;
                         display: flex;
@@ -150,11 +155,11 @@
                         border-radius: 12px;
                         max-width: 600px;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-                        transition: transform 0.3s, box-shadow 0.3s;
+                        transition: transform 0.3s ease, box-shadow 0.3s ease;
                     }
                     .container:hover {
-                        transform: scale(1.05);
-                        box-shadow: 0 0 20px white;
+                        transform: translateY(-5px);
+                        box-shadow: 0 10px 20px rgba(255, 255, 255, 0.4);
                     }
                     h1 {
                         font-size: 22px;
@@ -171,6 +176,7 @@
                         text-align: left;
                         max-height: 300px;
                         overflow-y: auto;
+                        font-family: 'Poppins', sans-serif;
                     }
                     button {
                         margin-top: 10px;
@@ -194,9 +200,10 @@
                     <pre id="answer">${answer}</pre>
                     <button onclick="copyToClipboard()">📋 Copy</button>
                 </div>
+
                 <script>
                     function copyToClipboard() {
-                        const answerText = document.getElementById("answer").innerText;
+                        const answerText = document.getElementById("answer").textContent;
                         navigator.clipboard.writeText(answerText).then(() => {
                             alert("Copied to clipboard!");
                         }).catch(err => console.error("Copy failed:", err));
