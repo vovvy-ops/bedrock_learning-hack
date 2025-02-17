@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Bedrock Learning Gemini Solver
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Takes a screenshot of Bedrock Learning, sends it to Gemini, and displays the answer in a beautifully styled new tab.
+// @version      1.5
+// @description  Takes a screenshot of Bedrock Learning, sends it to Gemini, and displays the answer in a new tab.  No settings.
 // @author       You
 // @match        https://app.bedrocklearning.org/*
 // @grant        GM_openInTab
@@ -15,17 +15,17 @@
 (function () {
     'use strict';
 
-    const GEMINI_API_KEY_KEY = 'geminiApiKey'; // Key for storing the API key in Tampermonkey storage
-    let geminiApiKey = GM_getValue(GEMINI_API_KEY_KEY, null); // Retrieve the API key from storage
+    const GEMINI_API_KEY_KEY = 'Your-Google-API-Key-Here';
+    let geminiApiKey = GM_getValue(GEMINI_API_KEY_KEY, null);
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=';
-    const DEFAULT_PROMPT = "Analyze the image and identify the MAIN question. Answer to that question with a clear and concise answer. Do not show your working.";
+    const DEFAULT_PROMPT = "Analyze the image and identify questions. Give a clear and concise answer and also tell the question you identified.";
     const ADDITIONAL_PROMPT_MESSAGE = "Enter any additional instructions or questions to send with the image (or leave blank for default prompt):";
 
     async function checkApiKey() {
         if (!geminiApiKey) {
             geminiApiKey = prompt("Enter your Google AI Studio API Key:");
             if (geminiApiKey) {
-                GM_setValue(GEMINI_API_KEY_KEY, geminiApiKey); // Save the API key to Tampermonkey storage
+                GM_setValue(GEMINI_API_KEY_KEY, geminiApiKey);
                 alert("API key saved. Press Ctrl+X again to process the question.");
             } else {
                 alert("API key required for the script to function.");
@@ -111,6 +111,7 @@
     }
 
     function displayAnswerInNewTab(answer) {
+        // Remove settings-related code and variables
         const newTabContent = `
             <!DOCTYPE html>
             <html lang="en">
@@ -120,16 +121,9 @@
                 <title>Gemini Answer</title>
                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
                 <style>
-                    @keyframes hueShift {
-                        0% { background-color: #1E90FF; } /* Blue */
-                        33% { background-color: #32CD32; } /* Green */
-                        66% { background-color: #FF69B4; } /* Pink */
-                        100% { background-color: #1E90FF; } /* Blue */
-                    }
-
                     body {
                         font-family: 'Poppins', sans-serif;
-                        animation: hueShift 10s infinite;
+                        background: linear-gradient(135deg, #1E1E2F, #2D2D3F);
                         color: #FFF;
                         text-align: center;
                         display: flex;
@@ -137,7 +131,8 @@
                         align-items: center;
                         height: 100vh;
                         margin: 0;
-                        overflow: hidden;
+                        transition: background 0.3s ease;
+                        position: relative;
                     }
                     .container {
                         background: rgba(255, 255, 255, 0.1);
@@ -145,15 +140,36 @@
                         border-radius: 12px;
                         max-width: 600px;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-                        backdrop-filter: blur(10px);
+                        transition: all 0.3s ease;
+                        position: relative;
+                    }
+                    .container:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+                        outline: 2px solid white;
+                    }
+                    .container::before {
+                        content: '';
+                        position: absolute;
+                        top: -10px;
+                        left: -10px;
+                        right: -10px;
+                        bottom: -10px;
+                        border-radius: 16px;
+                        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+                        z-index: -1;
+                        opacity: 0;
+                        transition: opacity 0.3s ease;
+                    }
+                    .container:hover::before {
+                        opacity: 1;
                     }
                     h1 {
                         font-size: 22px;
                         font-weight: 600;
                         margin-bottom: 10px;
                     }
-                    #answer {
-                        font-family: 'Poppins', sans-serif;
+                    pre {
                         white-space: pre-wrap;
                         word-wrap: break-word;
                         font-size: 14px;
@@ -194,6 +210,27 @@
                             alert("Copied to clipboard!");
                         }).catch(err => console.error("Copy failed:", err));
                     }
+
+                    // Function to process the text and apply formatting
+                    function processAnswer() {
+                        const answerElement = document.getElementById("answer");
+                        if (!answerElement) return;
+
+                        let processedText = answerElement.textContent;
+
+                        // Replace text surrounded by asterisks with bold text
+                        processedText = processedText.replace(/\\\*([^*]+)\\\*/g, '<b>$1</b>');
+                        processedText = processedText.replace(/\*([^*]+)\*/g, '<b>$1</b>');
+
+                        // Replace text with italics and quotation marks
+                        processedText = processedText.replace(/\"([^\"]+)\"/g, '<i>"$1"</i>');
+
+                        // Set the processed HTML to the element
+                        answerElement.innerHTML = processedText;
+                    }
+
+                    // Call the processing function after the content is loaded
+                    window.addEventListener('load', processAnswer);
                 </script>
             </body>
             </html>
