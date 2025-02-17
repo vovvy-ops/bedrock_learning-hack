@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Bedrock Learning Gemini Solver
+// @name         Bedrock Learning Solver
 // @namespace    http://tampermonkey.net/
-// @version      1.5
-// @description  Takes a screenshot of Bedrock Learning, sends it to Gemini, and displays the answer in a new tab.  No settings.
+// @version      1.3
+// @description  Takes a screenshot of Bedrock Learning, sends it to Gemini, and displays the answer in a beautifully styled new tab.
 // @author       You
 // @match        https://app.bedrocklearning.org/*
 // @grant        GM_openInTab
@@ -18,7 +18,7 @@
     const GEMINI_API_KEY_KEY = 'Your-Google-API-Key-Here';
     let geminiApiKey = GM_getValue(GEMINI_API_KEY_KEY, null);
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=';
-    const DEFAULT_PROMPT = "Analyze the image and identify questions. Give a clear and concise answer and also tell the question you identified.";
+    const DEFAULT_PROMPT = "Analyze the image and identify any questions. Answer the questions clearly and concisely";
     const ADDITIONAL_PROMPT_MESSAGE = "Enter any additional instructions or questions to send with the image (or leave blank for default prompt):";
 
     async function checkApiKey() {
@@ -92,8 +92,13 @@
                         if (response.status >= 200 && response.status < 300) {
                             try {
                                 const jsonResponse = JSON.parse(response.responseText);
-                                const answer = jsonResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "No answer found.";
-                                resolve(answer);
+                                let answer = jsonResponse?.candidates?.[0]?.content?.parts?.[0]?.text || "No answer found.";
+
+                                // Apply bold and italic formatting
+                                answer = answer.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Bold
+                                answer = answer.replace(/"(.*?)"/g, '<i>$1</i>'); // Italics
+
+                                displayAnswerInNewTab(answer);
                             } catch (error) {
                                 reject("Error parsing response: " + error.message);
                             }
@@ -111,7 +116,6 @@
     }
 
     function displayAnswerInNewTab(answer) {
-        // Remove settings-related code and variables
         const newTabContent = `
             <!DOCTYPE html>
             <html lang="en">
@@ -121,9 +125,17 @@
                 <title>Gemini Answer</title>
                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
                 <style>
+                    @keyframes gradientChange {
+                        0% { background: #1E1E2F; }
+                        25% { background: #3E4E5E; }
+                        50% { background: #2E2E3E; }
+                        75% { background: #0E1E2F; }
+                        100% { background: #1E1E2F; }
+                    }
+
                     body {
                         font-family: 'Poppins', sans-serif;
-                        background: linear-gradient(135deg, #1E1E2F, #2D2D3F);
+                        animation: gradientChange 10s infinite alternate ease-in-out;
                         color: #FFF;
                         text-align: center;
                         display: flex;
@@ -131,8 +143,6 @@
                         align-items: center;
                         height: 100vh;
                         margin: 0;
-                        transition: background 0.3s ease;
-                        position: relative;
                     }
                     .container {
                         background: rgba(255, 255, 255, 0.1);
@@ -140,29 +150,11 @@
                         border-radius: 12px;
                         max-width: 600px;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-                        transition: all 0.3s ease;
-                        position: relative;
+                        transition: transform 0.3s, box-shadow 0.3s;
                     }
                     .container:hover {
-                        transform: translateY(-5px);
-                        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-                        outline: 2px solid white;
-                    }
-                    .container::before {
-                        content: '';
-                        position: absolute;
-                        top: -10px;
-                        left: -10px;
-                        right: -10px;
-                        bottom: -10px;
-                        border-radius: 16px;
-                        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-                        z-index: -1;
-                        opacity: 0;
-                        transition: opacity 0.3s ease;
-                    }
-                    .container:hover::before {
-                        opacity: 1;
+                        transform: scale(1.05);
+                        box-shadow: 0 0 20px white;
                     }
                     h1 {
                         font-size: 22px;
@@ -202,35 +194,13 @@
                     <pre id="answer">${answer}</pre>
                     <button onclick="copyToClipboard()">📋 Copy</button>
                 </div>
-
                 <script>
                     function copyToClipboard() {
-                        const answerText = document.getElementById("answer").textContent;
+                        const answerText = document.getElementById("answer").innerText;
                         navigator.clipboard.writeText(answerText).then(() => {
                             alert("Copied to clipboard!");
                         }).catch(err => console.error("Copy failed:", err));
                     }
-
-                    // Function to process the text and apply formatting
-                    function processAnswer() {
-                        const answerElement = document.getElementById("answer");
-                        if (!answerElement) return;
-
-                        let processedText = answerElement.textContent;
-
-                        // Replace text surrounded by asterisks with bold text
-                        processedText = processedText.replace(/\\\*([^*]+)\\\*/g, '<b>$1</b>');
-                        processedText = processedText.replace(/\*([^*]+)\*/g, '<b>$1</b>');
-
-                        // Replace text with italics and quotation marks
-                        processedText = processedText.replace(/\"([^\"]+)\"/g, '<i>"$1"</i>');
-
-                        // Set the processed HTML to the element
-                        answerElement.innerHTML = processedText;
-                    }
-
-                    // Call the processing function after the content is loaded
-                    window.addEventListener('load', processAnswer);
                 </script>
             </body>
             </html>
@@ -246,13 +216,12 @@
                 const canvas = await captureScreenshot();
                 const imageBlob = await convertCanvasToBlob(canvas);
                 const additionalPrompt = prompt(ADDITIONAL_PROMPT_MESSAGE);
-                const answer = await sendImageToGemini(imageBlob, additionalPrompt);
-                displayAnswerInNewTab(answer);
+                await sendImageToGemini(imageBlob, additionalPrompt);
             } catch (error) {
                 alert("Error: " + error);
             }
         }
     });
 
-    console.log("Bedrock Learning Gemini Solver script loaded.");
+    console.log("Uber Aesthetic Solver script loaded.");
 })();
